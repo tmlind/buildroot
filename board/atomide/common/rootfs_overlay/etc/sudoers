@@ -1,0 +1,2 @@
+tmlind	ALL=(ALL) ALL
+tmlind	ALL=NOPASSWD: ALL

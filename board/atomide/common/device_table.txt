@@ -1,0 +1,20 @@
+# See package/makedevs/README for details
+#
+# This device table is used to assign proper ownership and permissions
+# on various files. It doesn't create any device file, as it is used
+# in both static device configurations (where /dev/ is static) and in
+# dynamic configurations (where devtmpfs, mdev or udev are used).
+#
+# <name>				<type>	<mode>	<uid>	<gid>	<major>	<minor>	<start>	<inc>	<count>
+/etc/ssh/ssh_host_rsa_key	     	f	600	0	0	-	-	-	-	-
+/etc/ssh/ssh_host_rsa_key.pub	     	f	644	0	0	-	-	-	-	-
+/etc/ssh/ssh_host_dsa_key	     	f	600	0	0	-	-	-	-	-
+/etc/ssh/ssh_host_dsa_key.pub	     	f	644	0	0	-	-	-	-	-
+/home					d	755	0	0	-	-	-	-	-
+/home/tmlind				d	755	666	666	-	-	-	-	-
+/home/tmlind/.ssh			d	700	666	666	-	-	-	-	-
+/home/tmlind/.ssh/authorized_keys	f	600	666	666	-	-	-	-	-
+/dev/ttyO0				c	660	0	0	253	0	-	-	-
+/dev/ttyO1				c	660	0	0	253	1	-	-	-
+/dev/ttyO2				c	660	0	0	253	2	-	-	-
+/dev/ttyO3				c	660	0	0	253	3	-	-	-

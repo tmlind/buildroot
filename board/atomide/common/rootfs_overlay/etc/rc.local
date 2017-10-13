@@ -1,0 +1,1 @@
+sysctl -p /etc/sysctl.conf

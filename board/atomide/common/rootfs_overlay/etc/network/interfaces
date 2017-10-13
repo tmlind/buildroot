@@ -1,0 +1,14 @@
+auto lo
+iface lo inet loopback
+
+auto wlan0
+iface wlan0 inet static
+	pre-up modprobe ccm; killall -q wpa_supplicant; ifconfig wlan0 up; sleep 1; ifconfig wlan0 down; sleep 3; ifconfig wlan0 hw ether ae:79:3b:5e:bf:5f; wpa_supplicant -B w -i wlan0 -c /etc/wpa_supplicant.conf
+	post-down killall -q wpa_supplicant
+	address 192.168.200.95
+	netmask 255.255.255.0
+	gateway 192.168.200.1
+	dns-search monkeybrains.net
+	dns-nameservers 208.69.43.23 208.69.40.4
+	#udhcpc_opts -t 3
+	#wait-delay 15

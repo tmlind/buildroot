@@ -1,0 +1,8 @@
+# Module ccm is needed for WPA
+motorola-cpcap
+cpcap-regulator
+ccm
+wlcore
+wlcore_sdio
+wl12xx
+wl18xx
