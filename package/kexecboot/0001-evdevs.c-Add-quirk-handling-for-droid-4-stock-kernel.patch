@@ -1,0 +1,92 @@
+From tony Mon Sep 17 00:00:00 2001
+From: Tony Lindgren <tony@atomide.com>
+Date: Sun, 22 Oct 2017 20:13:02 -0700
+Subject: [PATCH] evdevs.c: Add quirk handling for droid 4 stock kernel
+ swapped arrow keys
+
+On droid 4 stock kernel the up/down and left/right arrow keys are swapped.
+Let's add quirk handling for evdevs so we can fix this on init.
+
+Signed-off-by: Tony Lindgren <tony@atomide.com>
+---
+ src/evdevs.c | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 56 insertions(+)
+
+diff --git a/src/evdevs.c b/src/evdevs.c
+--- a/src/evdevs.c
++++ b/src/evdevs.c
+@@ -29,6 +29,8 @@
+ #include <linux/input.h>
+ #include <limits.h>
+ 
++#include <sys/utsname.h>
++
+ #include "config.h"
+ #include "evdevs.h"
+ #include "util.h"
+@@ -115,9 +117,63 @@ int evdev_is_suitable(int fd)
+ 	return 0;
+ }
+ 
++/* The stock kernel on droid 4 is buggy and needs the arrow keys swapped */
++int evdev_prepare_droid4(int fd)
++{
++	struct utsname uts;
++	int error, map[2];
++
++	error = uname(&uts);
++	if (error)
++		return error;
++
++	if (strncmp("droid4", uts.nodename, 6) ||
++	    strncmp("3.0.8-g448a95f", uts.release, 15))
++		return 0;
++
++	map[0] = 0x33;
++	map[1] = KEY_UP;
++	error = ioctl(fd, EVIOCSKEYCODE, &map);
++	if (error)
++		return error;
++
++	map[0] = 0x2b;
++	map[1] = KEY_DOWN;
++	error = ioctl(fd, EVIOCSKEYCODE, &map);
++	if (error)
++		return error;
++
++	map[0] = 0x23;
++	map[1] = KEY_LEFT;
++	error = ioctl(fd, EVIOCSKEYCODE, &map);
++	if (error)
++		return error;
++
++	map[0] = 0x1b;
++	map[1] = KEY_RIGHT;
++	error = ioctl(fd, EVIOCSKEYCODE, &map);
++	if (error)
++		return error;
++
++	return 0;
++}
++
+ /* Prepare event device */
+ void evdev_prepare_fd(int fd)
+ {
++	char name[16];
++	int error;
++
++	error = ioctl(fd, EVIOCGNAME(sizeof(name)), name);
++	if (error < 0)
++		return;
++
++	if (!strncmp("omap4-keypad", name, 14)) {
++		error = evdev_prepare_droid4(fd);
++		if (error)
++			return;
++	}
++
+ #ifdef USE_EVDEV_RATE
+ 	/* Repeat rate array (milliseconds) */
+ 	int rep[2] = { USE_EVDEV_RATE };
+-- 
+2.14.2

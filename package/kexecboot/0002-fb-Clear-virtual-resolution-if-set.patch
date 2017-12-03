@@ -1,0 +1,77 @@
+From tony Mon Sep 17 00:00:00 2001
+From: Tony Lindgren <tony@atomide.com>
+Date: Sun, 22 Oct 2017 19:33:53 -0700
+Subject: [PATCH] fb: Clear virtual resolution if set
+
+We are currently partially clearing it in attempt_to_change_pixel_format() but
+need to clear it always if set at least for droid 4. Otherwise the display
+won't output anything viewable. Earlier this was cleared before starting
+kexecboot with:
+
+# echo 540,960 > /sys/class/graphics/fb0/virtual_size
+
+Signed-off-by: Tony Lindgren <tony@atomide.com>
+---
+ src/fb.c | 38 +++++++++++++++++++++++++++++---------
+ 1 file changed, 29 insertions(+), 9 deletions(-)
+
+diff --git a/src/fb.c b/src/fb.c
+--- a/src/fb.c
++++ b/src/fb.c
+@@ -396,18 +396,32 @@ void fb_destroy()
+ 		free(fb.backbuffer);
+ }
+ 
+-int
+-attempt_to_change_pixel_format(struct fb_var_screeninfo *fb_var)
++/*
++ * By default the framebuffer driver may have set an oversized
++ * yres_virtual to support VT scrolling via the panning interface,
++ * or is using default xres_virtual and yres_virtual values set up
++ * for a larger displays supported by the same kernel as done by the
++ * droid 4 kernel.
++ *
++ * We don't try and maintain this since it's more likely that we
++ * will fail to increase the bpp if the driver's pre allocated
++ * framebuffer isn't large enough.
++ */
++int clear_virtual(struct fb_var_screeninfo *fb_var)
+ {
+-	/* By default the framebuffer driver may have set an oversized
+-	 * yres_virtual to support VT scrolling via the panning interface.
+-	 *
+-	 * We don't try and maintain this since it's more likely that we
+-	 * will fail to increase the bpp if the driver's pre allocated
+-	 * framebuffer isn't large enough.
+-	 */
++	if (fb_var->xres_virtual == fb_var->xres &&
++	    fb_var->yres_virtual == fb_var->yres)
++		return 0;
++
++	fb_var->xres_virtual = fb_var->xres;
+ 	fb_var->yres_virtual = fb_var->yres;
+ 
++	return ioctl(fb.fd, FBIOPUT_VSCREENINFO, fb_var);
++}
++
++int
++attempt_to_change_pixel_format(struct fb_var_screeninfo *fb_var)
++{
+ 	/* First try setting an 8,8,8,0 pixel format so we don't have to do
+ 	 * any conversions while drawing. */
+ 
+@@ -505,6 +519,12 @@ int fb_new(int angle)
+ 		goto fail;
+ 	}
+ 
++	if (clear_virtual(&fb_var))
++	{
++		log_msg(lg, "Could not clear virtual resolution\n");
++		goto fail;
++	}
++
+ 	if (fb_var.bits_per_pixel < 16)
+ 	{
+ 		log_msg(lg,
+-- 
+2.14.2
