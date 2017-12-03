@@ -1,0 +1,8 @@
+config BR2_PACKAGE_KEXECBOOT
+	bool "kexecboot"
+	depends on BR2_PACKAGE_KEXEC
+	help
+	  Kexecboot is a GUI for kexec that can be used on
+	  kernels without CONFIG_VT
+
+	  https://github.com/kexecboot/kexecboot
