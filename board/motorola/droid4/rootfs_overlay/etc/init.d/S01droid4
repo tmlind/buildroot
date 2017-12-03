@@ -1,0 +1,39 @@
+#!/bin/sh
+
+stock_kernel="3.0.8-g448a95f"
+stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
+kernel_version=$(uname -r)
+
+# We need stock kernel uart.ko loaded early on droid4 for console output.
+# Let's load the kexec modules too while at it since we'll be kexec booting
+# to a newer kernel anyways. Please add only early stock kernel specific
+# init here. Needs proc and sys mounted.
+load_modules() {
+	if [ "${kernel_version}" == "${stock_kernel}" ]; then
+		# Kexec booting at 300MHz rate can be flakey, force 1.2GHz
+		echo 1200000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+		# Ignore noisy stock kernel kexec..
+		echo 3 > /proc/sysrq-trigger
+
+		insmod ${stock_kexec_modules}/uart.ko
+		insmod ${stock_kexec_modules}/arm_kexec.ko
+		insmod ${stock_kexec_modules}/kexec.ko
+	fi
+}
+
+case "$1" in
+  start)
+	echo "Starting droid4 stock kernel fixups..."
+	load_modules
+	;;
+  stop)
+        ;;
+  restart|reload)
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

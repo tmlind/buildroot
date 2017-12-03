@@ -1,0 +1,9 @@
+config BR2_PACKAGE_DROID4_MODULES
+	bool "Droid 4 stock kernel modules"
+	depends on BR2_ROOTFS_POST_BUILD_SCRIPT = "board/motorola/droid4/post-build.sh"
+	help
+	  Download and install uart and kexec modules for Droid 4
+	  legacy stock kernel. These modules need to be built using
+	  gcc-4.8 against a hacked up v3.18 kernel tree and are
+	  currently not built from source in buildroot to avoid
+	  limiting the be buildroot rootfs to an old compiler.
