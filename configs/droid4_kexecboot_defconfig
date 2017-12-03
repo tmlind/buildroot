@@ -1,3 +1,4 @@
+BR2_CCACHE=y
 BR2_arm=y
 BR2_cortex_a9=y
 BR2_ARM_ENABLE_NEON=y
