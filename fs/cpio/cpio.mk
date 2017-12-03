@@ -21,7 +21,7 @@ define ROOTFS_CPIO_ADD_INIT
 	fi
 endef
 
-PACKAGES_PERMISSIONS_TABLE += /dev/console c 622 0 0 5 1 - - -$(sep)
+##PACKAGES_PERMISSIONS_TABLE += /dev/console c 622 0 0 5 1 - - -$(sep)
 
 endif # BR2_ROOTFS_DEVICE_CREATION_STATIC
 
