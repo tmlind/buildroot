@@ -65,3 +65,12 @@ fi
 if [ "${usr_sbin_links}" != "" ]; then
 	rewrite_links "${usr_sbin_links}" "/bin/busybox"
 fi
+
+#
+# Configure kexec wrapper script for v3.0.8 kernels
+#
+if [ -f ${TARGET_DIR}/usr/sbin/kexec ] &&
+		[ -f ${TARGET_DIR}/usr/sbin/kexec-droid4 ]; then
+	mv ${TARGET_DIR}/usr/sbin/kexec ${TARGET_DIR}/usr/sbin/kexec-mainline
+	mv ${TARGET_DIR}/usr/sbin/kexec.sh ${TARGET_DIR}/usr/sbin/kexec
+fi

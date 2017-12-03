@@ -1,0 +1,8 @@
+config BR2_PACKAGE_KEXEC_DROID4
+	bool "Droid 4 legacy kexec"
+	depends on BR2_PACKAGE_KEXEC && BR2_PACKAGE_DROID4_MODULES
+	help
+	  Download and install legacy kexec binary for droid 4.
+	  This is needed to boot legacy v3.18 based kernels that
+	  can't be done with the mainline kexec binary as the
+	  droid 4 legacy kexec binary is still using atags.

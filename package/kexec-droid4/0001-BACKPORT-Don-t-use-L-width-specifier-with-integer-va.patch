@@ -1,0 +1,144 @@
+From tony Mon Sep 17 00:00:00 2001
+From: Tony Lindgren <tony@atomide.com>
+Date: Mon, 27 Nov 2017 22:13:36 -0800
+Subject: [PATCH] BACKPORT: Don't use %L width specifier with integer
+ values
+
+Backport mainline kexec-tools commit eb0f063eb70d ("Don't use %L width specifier
+with integer values")
+---
+ kexec/arch/arm/kexec-arm.c           | 2 +-
+ kexec/arch/i386/crashdump-x86.c      | 4 ++--
+ kexec/arch/i386/kexec-x86-common.c   | 2 +-
+ kexec/arch/ia64/kexec-elf-rel-ia64.c | 2 +-
+ kexec/arch/mips/crashdump-mips.c     | 2 +-
+ kexec/arch/mips/kexec-mips.c         | 2 +-
+ kexec/arch/s390/kexec-s390.c         | 2 +-
+ kexec/crashdump.c                    | 4 ++--
+ kexec/kexec-iomem.c                  | 2 +-
+ 9 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/kexec/arch/arm/kexec-arm.c b/kexec/arch/arm/kexec-arm.c
+--- a/kexec/arch/arm/kexec-arm.c
++++ b/kexec/arch/arm/kexec-arm.c
+@@ -44,7 +44,7 @@ int get_memory_ranges(struct memory_range **range, int *ranges,
+ 		int count;
+ 		if (memory_ranges >= MAX_MEMORY_RANGES)
+ 			break;
+-		count = sscanf(line, "%Lx-%Lx : %n",
++		count = sscanf(line, "%llx-%llx : %n",
+ 			&start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+diff --git a/kexec/arch/i386/crashdump-x86.c b/kexec/arch/i386/crashdump-x86.c
+--- a/kexec/arch/i386/crashdump-x86.c
++++ b/kexec/arch/i386/crashdump-x86.c
+@@ -223,12 +223,12 @@ static int get_crash_memory_ranges(struct memory_range **range, int *ranges,
+ 
+ 		if (memory_ranges >= CRASH_MAX_MEMORY_RANGES)
+ 			break;
+-		count = sscanf(line, "%Lx-%Lx : %n",
++		count = sscanf(line, "%llx-%llx : %n",
+ 			&start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+ 		str = line + consumed;
+-		dbgprintf("%016Lx-%016Lx : %s",
++		dbgprintf("%016llx-%016llx : %s",
+ 			start, end, str);
+ 		/* Only Dumping memory of type System RAM. */
+ 		if (memcmp(str, "System RAM\n", 11) == 0) {
+diff --git a/kexec/arch/i386/kexec-x86-common.c b/kexec/arch/i386/kexec-x86-common.c
+--- a/kexec/arch/i386/kexec-x86-common.c
++++ b/kexec/arch/i386/kexec-x86-common.c
+@@ -82,7 +82,7 @@ static int get_memory_ranges_proc_iomem(struct memory_range **range, int *ranges
+ 		int count;
+ 		if (memory_ranges >= MAX_MEMORY_RANGES)
+ 			break;
+-		count = sscanf(line, "%Lx-%Lx : %n",
++		count = sscanf(line, "%llx-%llx : %n",
+ 			&start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+diff --git a/kexec/arch/ia64/kexec-elf-rel-ia64.c b/kexec/arch/ia64/kexec-elf-rel-ia64.c
+--- a/kexec/arch/ia64/kexec-elf-rel-ia64.c
++++ b/kexec/arch/ia64/kexec-elf-rel-ia64.c
+@@ -154,6 +154,6 @@ void machine_apply_elf_rel(struct mem_ehdr *ehdr, unsigned long r_type,
+ 	}
+ 	return;
+ overflow:
+-	die("overflow in relocation type %lu val %Lx\n", 
++	die("overflow in relocation type %lu val %llx\n",
+ 			r_type, value);
+ }
+diff --git a/kexec/arch/mips/crashdump-mips.c b/kexec/arch/mips/crashdump-mips.c
+--- a/kexec/arch/mips/crashdump-mips.c
++++ b/kexec/arch/mips/crashdump-mips.c
+@@ -177,7 +177,7 @@ static int get_crash_memory_ranges(struct memory_range **range, int *ranges)
+ 		int type, consumed, count;
+ 		if (memory_ranges >= CRASH_MAX_MEMORY_RANGES)
+ 			break;
+-		count = sscanf(line, "%Lx-%Lx : %n",
++		count = sscanf(line, "%llx-%llx : %n",
+ 			&start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+diff --git a/kexec/arch/mips/kexec-mips.c b/kexec/arch/mips/kexec-mips.c
+--- a/kexec/arch/mips/kexec-mips.c
++++ b/kexec/arch/mips/kexec-mips.c
+@@ -44,7 +44,7 @@ int get_memory_ranges(struct memory_range **range, int *ranges,
+ 	while (fgets(line, sizeof(line), fp) != 0) {
+ 		if (memory_ranges >= MAX_MEMORY_RANGES)
+ 			break;
+-		count = sscanf(line, "%Lx-%Lx : %n", &start, &end, &consumed);
++		count = sscanf(line, "%llx-%llx : %n", &start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+ 		str = line + consumed;
+diff --git a/kexec/arch/s390/kexec-s390.c b/kexec/arch/s390/kexec-s390.c
+--- a/kexec/arch/s390/kexec-s390.c
++++ b/kexec/arch/s390/kexec-s390.c
+@@ -170,7 +170,7 @@ int get_memory_ranges_s390(struct memory_range memory_range[], int *ranges,
+ 		if (current_range == MAX_MEMORY_RANGES)
+ 			break;
+ 
+-		sscanf(line,"%Lx-%Lx : %n", &start, &end, &cons);
++		sscanf(line,"%llx-%llx : %n", &start, &end, &cons);
+ 		str = line+cons;
+ 		if ((memcmp(str, sys_ram, strlen(sys_ram)) == 0) ||
+ 		    ((memcmp(str, crash_kernel, strlen(crash_kernel)) == 0) &&
+diff --git a/kexec/crashdump.c b/kexec/crashdump.c
+--- a/kexec/crashdump.c
++++ b/kexec/crashdump.c
+@@ -97,7 +97,7 @@ int get_crash_notes_per_cpu(int cpu, uint64_t *addr, uint64_t *len)
+ 	}
+ 	if (!fgets(line, sizeof(line), fp))
+ 		die("Cannot parse %s: %s\n", crash_notes, strerror(errno));
+-	count = sscanf(line, "%Lx", &temp);
++	count = sscanf(line, "%llx", &temp);
+ 	if (count != 1)
+ 		die("Cannot parse %s: %s\n", crash_notes, strerror(errno));
+ 	*addr = (uint64_t) temp;
+@@ -124,7 +124,7 @@ static int get_vmcoreinfo(const char *kdump_info, uint64_t *addr, uint64_t *len)
+ 
+ 	if (!fgets(line, sizeof(line), fp))
+ 		die("Cannot parse %s: %s\n", kdump_info, strerror(errno));
+-	count = sscanf(line, "%Lx %Lx", &temp, &temp2);
++	count = sscanf(line, "%llx %llx", &temp, &temp2);
+ 	if (count != 2)
+ 		die("Cannot parse %s: %s\n", kdump_info, strerror(errno));
+ 
+diff --git a/kexec/kexec-iomem.c b/kexec/kexec-iomem.c
+--- a/kexec/kexec-iomem.c
++++ b/kexec/kexec-iomem.c
+@@ -44,7 +44,7 @@ int kexec_iomem_for_each_line(char *match,
+ 		die("Cannot open %s\n", iomem);
+ 
+ 	while(fgets(line, sizeof(line), fp) != 0) {
+-		count = sscanf(line, "%Lx-%Lx : %n", &start, &end, &consumed);
++		count = sscanf(line, "%llx-%llx : %n", &start, &end, &consumed);
+ 		if (count != 2)
+ 			continue;
+ 		str = line + consumed;
+-- 
+2.15.0
