@@ -5,6 +5,18 @@ if [ "${TARGET_DIR}" == "" ]; then
 	exit 1
 fi
 
+# Create an empty /lib/firmware mount point for tmpfs. We can save
+# space by copying the stock kernel firmware to tmpfs for WLAN on boot.
+#
+if [ ! -d ${TARGET_DIR}/lib/firmware ]; then
+	mkdir -p ${TARGET_DIR}/lib/firmware
+fi
+
+#
+# Only enable networking if user creates /etc/wpa_supplicant.conf.
+#
+rm -f ${TARGET_DIR}/etc/wpa_supplicant.conf
+
 #
 # Droid 4 stock kernel needs absolute paths for busybox links, probably
 # due to selinux. We cannot use BR2_PACKAGE_BUSYBOX_INDIVIDUAL_BINARIES
