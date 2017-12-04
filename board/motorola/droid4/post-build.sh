@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "${TARGET_DIR}" == "" ]; then
+if [ "${TARGET_DIR}" = "" ]; then
 	echo "No TARGET_DIR in environment"
 	exit 1
 fi
@@ -27,7 +27,7 @@ rewrite_link() {
 	old_link=$1
 	new_link=$2
 
-	if [ -l ${old_link} ]; then
+	if [ -L ${old_link} ]; then
 		echo "could not find ${old_link}"
 		exit 1
 	fi
