@@ -70,7 +70,8 @@ fi
 # Configure kexec wrapper script for v3.0.8 kernels
 #
 if [ -f ${TARGET_DIR}/usr/sbin/kexec ] &&
-		[ -f ${TARGET_DIR}/usr/sbin/kexec-droid4 ]; then
-	mv ${TARGET_DIR}/usr/sbin/kexec ${TARGET_DIR}/usr/sbin/kexec-mainline
+		[ -f ${TARGET_DIR}/usr/sbin/kexec-droid4 ] &&
+		[ -f ${BUILD_DIR}/kexec-2.*.*/build/sbin/kexec ]; then
+	cp ${BUILD_DIR}/kexec-2.*.*/build/sbin/kexec ${TARGET_DIR}/usr/sbin/kexec-mainline
 	mv ${TARGET_DIR}/usr/sbin/kexec.sh ${TARGET_DIR}/usr/sbin/kexec
 fi
