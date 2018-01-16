@@ -1,0 +1,36 @@
+From tony Mon Sep 17 00:00:00 2001
+From: Tony Lindgren <tony@atomide.com>
+Date: Mon, 15 Jan 2018 20:40:48 -0800
+Subject: [PATCH 1/1] HACK: Increase compression ratio
+
+Recent mainline kexec-tools support reading the uncompressed kernel
+size from zImage with 9004e19ca2e7 "ARM: read kernel size from zImage"
+as long as the kernel has it like the recent kernels do.
+
+Rather than start backporting more patches, let's just assume we can
+forward port Hashcode's commit 0dbef4c4d3d1 ("adjust w/ project eternity
+code for devtree and cleanup"). Meanwhile, let's increase the default
+compression ratio from 4 to 6 to prevent dtb or initramfs from getting
+trashed.
+
+Note that we don't even have the --image-size option that got added to
+kexec a while back.
+---
+ kexec/arch/arm/kexec-zImage-arm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kexec/arch/arm/kexec-zImage-arm.c b/kexec/arch/arm/kexec-zImage-arm.c
+--- a/kexec/arch/arm/kexec-zImage-arm.c
++++ b/kexec/arch/arm/kexec-zImage-arm.c
+@@ -376,7 +376,7 @@ int zImage_arm_load(int argc, char **argv, const char *buf, off_t len,
+ 	/* assume the maximum kernel compression ratio is 4,
+ 	 * and just to be safe, place ramdisk after that
+ 	 */
+-	initrd_base = base + (len * 4) + getpagesize();
++	initrd_base = base + (len * 6) + getpagesize();
+ 	initrd_base &= ~(getpagesize() - 1);
+ 
+ 
+-- 
+2.15.0
+
