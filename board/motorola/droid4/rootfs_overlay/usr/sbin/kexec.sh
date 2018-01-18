@@ -4,6 +4,8 @@
 # to boot v3.0.8 based kernels if non-standard kexec option "devtree" is set.
 #
 
+romslot=""
+
 # Does the dtb use "edfe0dd0" instead of "d00df33d"?
 check_legacy_dtb() {
 	dtb=""
@@ -39,6 +41,32 @@ check_legacy_dtb() {
 	fi
 }
 
+parse_safestrap_romslot() {
+        for var in "$@"; do
+                if echo "${var}" | grep "androidboot.safestrap.romslot="; then
+			romslot=$(echo "${var}" | awk -F'=' '{print $(NF-0)}')
+			romslot=$(echo "${romslot}" | sed -e 's/"//')
+			echo "Selected romslot is ${romslot}.."
+                fi
+        done
+}
+
+fixup_safestrap_romslot() {
+	if [ "${romslot}" == "" ]; then
+		return
+	fi
+	mount -o rw /dev/mmcblk1p25 /mnt
+	if [ -f /mnt/safestrap/active_slot ]; then
+		current_slot=$(cat /mnt/safestrap/active_slot)
+		if [ "${current_slot}" != "${romslot}" ]; then
+			echo -n "Updating SafeStrap romslot "
+			echo ""${current_slot}" to "${romslot}""
+			echo "${romslot}" > /mnt/safestrap/active_slot
+		fi
+	fi
+	umount /mnt
+}
+
 # Rewrite args for legacy kexec to use --devtree and --atags and assume
 # there is an atags file in the same directory as the dtb
 run_legacy_kexec() {
@@ -70,6 +98,8 @@ check_legacy_dtb "$@"
 
 if [ "${legacy}" == "1" ]; then
 	echo "Using legacy kexec.."
+	parse_safestrap_romslot "$@"
+	fixup_safestrap_romslot
 	run_legacy_kexec "$@"
 else
 	/usr/sbin/kexec-mainline "$@"
