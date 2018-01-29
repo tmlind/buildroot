@@ -1,0 +1,29 @@
+#
+# Optional config for /etc/init.d/S95droid4-update-kernel
+# to automatically download a new test kernel from specified
+# server
+#
+
+# Server URL for kernel files, if empty no kernel download is
+# attempted at all. Note that you need to also disable kexec
+# in /etc/preinit by setting enable_uart=1 and start_kexecboot=0.
+# server="http://some.server.somewhere:8080/path/kernel/mainline"
+
+# Boot partitions to use
+boot_partitions="/dev/mmcblk0p1 /dev/mmcblk0p25"
+
+# Boot partition path to use for the kernel
+boot_path="boot/mainline"
+
+# File containing sha256 checksums of the files
+sha256_file="sha256.txt"
+
+# DTB name for the device
+dtb="omap4-droid4-xt894.dtb"
+
+# Kernel name
+kernel="zImage"
+
+# Tarred up kernel modules that the distro can be configured
+# to untar first thing on init
+modules="modules.tar.gz"

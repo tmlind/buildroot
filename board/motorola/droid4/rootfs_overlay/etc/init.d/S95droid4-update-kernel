@@ -1,0 +1,143 @@
+#!/bin/sh
+#
+# Download an updated test kernel if configured in /etc/kernel
+#
+# Intended for automatically booting test kernels for developers
+# and automated build and boot test systems.
+#
+
+if [ ! -f /etc/kernel ]; then
+	exit 0
+fi
+. /etc/kernel
+
+boot_partition=""
+
+mount_boot_partition() {
+	for partition in ${boot_partitions}; do
+		echo "Checking if ${partition} has boot.cfg.."
+		if mount -o ro ${partition} /mnt; then
+			if [ -f /mnt/boot/boot.cfg ]; then
+				boot_partition=${partition}
+				echo "Using ${boot_partition}"
+				return
+			else
+				umount /mnt
+			fi
+		fi
+	done
+}
+
+download_file() {
+	file=$1
+	retries=$2
+
+	while [ "${retries}" -gt "0" ]; do
+		if ! wget -O /tmp/${file} ${server}/${file}; then
+			retries=$((retries - 1))
+			echo "${retries} more retries for ${file}.."
+			sleep 1
+		else
+			return
+		fi
+	done
+}
+
+check_and_download_file() {
+	file=$1
+
+	if [ -f /mnt/${boot_path}/${sha256_file} ]; then
+		old=$(grep ${file} /mnt/${boot_path}/${sha256_file})
+	else
+		old=""
+	fi
+	new=$(grep ${file} /tmp/${sha256_file})
+
+	if [ "${old}" != "" ] && [ "${old}" = "${new}" ]; then
+		echo "File ${file} already up to date"
+		return
+	fi
+
+	echo "File ${file} needs updating.."
+	download_file ${file} 2
+
+	downloaded=$(/bin/sh -c "cd /tmp/ && sha256sum ${file}")
+	if [ "${downloaded}" != "${new}" ]; then
+		echo "Downloaded ${file} sha256 does not match!"
+		umount /mnt
+		exit 1
+	fi
+
+	if ! cp /tmp/${file} /mnt/${boot_path}/; then
+		echo "Could not copy file ${file}"
+		umount /mnt
+		exit 1
+	fi
+}
+
+check_and_download_kernel_files() {
+	download_file ${sha256_file} 3
+	if [ ! -f /tmp/${sha256_file} ]; then
+		echo "Could not download ${sha256_file}"
+		exit 1
+	fi
+
+	echo "List of current kernel files:"
+	cat /tmp/${sha256_file}
+
+	mount_boot_partition
+
+	if [ -f /mnt/${boot_path}/${sha256_file} ]; then
+		if cmp /tmp/${sha256_file} /mnt/${boot_path}/${sha256_file}; then
+			echo "${sha256_file} up to date already, not checking files"
+			umount /mnt
+			return
+		fi
+	fi
+
+	if ! mount -o rw,remount /mnt; then
+		echo "Could not remount rw"
+		umount /mnt
+		exit 1
+	fi
+
+	if ! mkdir -p /mnt/${boot_path}; then
+		echo "Could not mkdir ${boot_path}"
+		umount /mnt
+		exit 1
+	fi
+
+	check_and_download_file ${dtb}
+	check_and_download_file ${kernel}
+	check_and_download_file ${modules}
+
+	if ! cp /tmp/${sha256_file} /mnt/${boot_path}/; then
+		echo "Could not copy ${sha256_file}"
+		umount /mnt
+		exit 1
+	fi
+
+	umount /mnt
+}
+
+case "$1" in
+	start)
+		if [ ! -f "/etc/wpa_supplicant.conf" ] ||
+			   [ ! -f "/etc/kernel" ] ||
+			   [ "${server}" == "" ]; then
+			exit 0
+		fi
+		echo "Checking for a new test kernel to download.."
+		check_and_download_kernel_files
+		echo "Starting kedecboot.."
+		kexecboot
+	;;
+	stop)
+		killall kexecboot
+		;;
+	*)
+		echo "Usage: $0 {start|stop}"
+		exit 1
+esac
+
+exit $?
