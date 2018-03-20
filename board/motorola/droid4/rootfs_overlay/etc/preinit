@@ -1,0 +1,12 @@
+#
+# Motorola droid 4 preinit configuration file,
+# sourced from /sbin/preinit.sh
+#
+
+# Enable UART for debugging, keep off for normal use for PM
+enable_uart=0
+
+# Set this to 0 to not start kexecboot, handy for adding a script
+# to download an updated kernel over WLAN automatically for example
+# for automated boot test systems
+start_kexecboot=1

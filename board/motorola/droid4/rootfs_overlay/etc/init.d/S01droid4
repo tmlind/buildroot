@@ -16,9 +16,8 @@ load_modules() {
 		# Ignore noisy stock kernel kexec..
 		echo 3 > /proc/sysrq-trigger
 
+		# Load arm_kexec.ko and kexec.ko later only as needed
 		insmod ${stock_kexec_modules}/uart.ko
-		insmod ${stock_kexec_modules}/arm_kexec.ko
-		insmod ${stock_kexec_modules}/kexec.ko
 	fi
 }
 

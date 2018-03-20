@@ -2,9 +2,50 @@
 #
 # Wrapper script for kexec and kexec-droid4 as we need to use kexec-droid4
 # to boot v3.0.8 based kernels if non-standard kexec option "devtree" is set.
+# Also supports pivot_root booting together with preinit.sh.
 #
 
+stock_kernel="3.0.8-g448a95f"
+mapphone="mapphone_CDMA"
+
 romslot=""
+
+# Kill kexecboot if pivot_root to stock Android distro is requested.
+# Tag /tmp/pivot_root for /sbin/preinit.sh so it can continue to the
+# stock Android distro.
+check_pivot_root() {
+	for var in "$@"; do
+		if echo "${var}" | grep "\--command-line=stock" > /dev/null; then
+			echo "Stock Android distro pivot_root requested"
+			mount -t tmpfs none /tmp
+			touch /tmp/pivot_root
+			killall kexecboot
+			exit 0
+		fi
+	done
+}
+
+# We don't want uart and kexec modules loaded for pivot_root for PM.
+# Only load them when needed for kexec.
+load_modules() {
+	kernel_version=$(uname -r)
+	hardware=$(grep Hardware /proc/cpuinfo | cut -d' ' -f2)
+	stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
+
+	if [ "${kernel_version}" == "${stock_kernel}" ] &&
+		[ "${hardware}" == "${mapphone}" ]; then
+
+		# At least kexec booting at 300MHz rate can be flakey, force 1.2GHz
+		echo 1200000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+
+		# Ignore noisy stock kernel kexec..
+		echo 3 > /proc/sysrq-trigger
+
+		insmod ${stock_kexec_modules}/uart.ko
+		insmod ${stock_kexec_modules}/arm_kexec.ko
+		insmod ${stock_kexec_modules}/kexec.ko
+        fi
+}
 
 # Does the dtb use "edfe0dd0" instead of "d00df33d"?
 check_legacy_dtb() {
@@ -94,6 +135,8 @@ run_legacy_kexec() {
 	/usr/sbin/kexec-droid4 "$@"
 }
 
+check_pivot_root "$@"
+load_modules
 check_legacy_dtb "$@"
 
 if [ "${legacy}" == "1" ]; then
