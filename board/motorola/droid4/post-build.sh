@@ -27,7 +27,7 @@ rewrite_link() {
 	old_link=$1
 	new_link=$2
 
-	if [ -L ${old_link} ]; then
+	if [ ! -L ${old_link} ]; then
 		echo "could not find ${old_link}"
 		exit 1
 	fi
