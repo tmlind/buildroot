@@ -9,8 +9,8 @@ Let's add quirk handling for evdevs so we can fix this on init.
 
 Signed-off-by: Tony Lindgren <tony@atomide.com>
 ---
- src/evdevs.c | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 56 insertions(+)
+ src/evdevs.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
 diff --git a/src/evdevs.c b/src/evdevs.c
 --- a/src/evdevs.c
@@ -24,7 +24,7 @@ diff --git a/src/evdevs.c b/src/evdevs.c
  #include "config.h"
  #include "evdevs.h"
  #include "util.h"
-@@ -115,9 +117,63 @@ int evdev_is_suitable(int fd)
+@@ -115,9 +117,62 @@ int evdev_is_suitable(int fd)
  	return 0;
  }
  
@@ -38,8 +38,7 @@ diff --git a/src/evdevs.c b/src/evdevs.c
 +	if (error)
 +		return error;
 +
-+	if (strncmp("droid4", uts.nodename, 6) ||
-+	    strncmp("3.0.8-g448a95f", uts.release, 15))
++	if (strncmp("3.0.8-g448a95f", uts.release, 15))
 +		return 0;
 +
 +	map[0] = 0x33;
@@ -89,4 +88,4 @@ diff --git a/src/evdevs.c b/src/evdevs.c
  	/* Repeat rate array (milliseconds) */
  	int rep[2] = { USE_EVDEV_RATE };
 -- 
-2.14.2
+2.16.2
