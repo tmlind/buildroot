@@ -10,6 +10,8 @@ kernel_version=$(uname -r)
 # take care of the rest.
 #
 start_wlan() {
+	retries=30
+
 	if [ ! -f /etc/wpa_supplicant.conf ]; then
 		echo "No /etc/wpa_supplicant.conf, not starting WLAN"
 		return
@@ -32,7 +34,18 @@ start_wlan() {
 		umount /mnt
 	fi
 
-	wpa_supplicant -iwlan0 -c /etc/wpa_supplicant.conf &
+	wpa_supplicant -iwlan0 -c /etc/wpa_supplicant.conf > /var/run/wpa_supplicant 2>&1 &
+
+	# prevent udhcpc from timing out before wpa_supplicant is done
+	while [ "${retries}" -gt "0" ]; do
+		if ! grep "wlan0: Associated with" /var/run/wpa_supplicant; then
+			retries=$((retries - 1))
+			echo "waiting max ${retries}s more to associate with access point.."
+			sleep 1
+		else
+			return
+		fi
+	done
 }
 
 case "$1" in
