@@ -10,7 +10,8 @@ kernel_version=$(uname -r)
 # take care of the rest.
 #
 start_wlan() {
-	retries=30
+	retries=120
+	errors=0
 
 	if [ ! -f /etc/wpa_supplicant.conf ]; then
 		echo "No /etc/wpa_supplicant.conf, not starting WLAN"
@@ -41,11 +42,23 @@ start_wlan() {
 		if ! grep "wlan0: Associated with" /var/run/wpa_supplicant; then
 			retries=$((retries - 1))
 			echo "waiting max ${retries}s more to associate with access point.."
+			new_err=$(grep -c CONN_FAILED /var/run/wpa_supplicant)
+			if [ "${new_err}" != "${errors}" ]; then
+				echo "Restarting wpa_supplicant.."
+				killall wpa_supplicant
+				cat /var/run/wpa_supplicant
+				wpa_supplicant -iwlan0 -c /etc/wpa_supplicant.conf > \
+					       /var/run/wpa_supplicant 2>&1 &
+				errors=${new_err}
+			fi
 			sleep 1
 		else
 			return
 		fi
 	done
+
+	echo "WLAN could not connect:"
+	cat /var/run/wpa_supplicant
 }
 
 case "$1" in
