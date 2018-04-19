@@ -5,6 +5,44 @@ stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
 stock_fw="etc/firmware/ti-connectivity"
 kernel_version=$(uname -r)
 
+mac=""
+
+#
+# Note that this does not consider the calibration data right now
+#
+read_mac() {
+	tmp=$(mktemp -d)
+
+	if ! mount -o ro /dev/mmcblk1p7 /${tmp}; then
+		echo "Could not mount pds"
+		return
+	fi
+
+	if [ ! -f ${tmp}/wifi/nvs_map.bin ]; then
+		echo "Could not find nvs_map.bin"
+		umount ${tmp}
+		return
+	fi
+
+	bytes=$(hexdump -C ${tmp}/wifi/nvs_map.bin | head -n1 | \
+			cut -d' ' -f6,7,8,9,14,15)
+
+	for byte in ${bytes}; do
+		if [ "${mac}" == "" ]; then
+			mac=${byte}
+		else
+			mac=${byte}:${mac}
+		fi
+	done
+
+	echo "Read WLAN MAC from nvs_map.bin: ${mac}"
+
+	echo "Copying nvs_map.bin to /lib/firmware/ti-connectivity/"
+	cp ${tmp}/wifi/nvs_map.bin /lib/firmware/ti-connectivity/
+
+	umount ${tmp}
+}
+
 #
 # Needs proc and sys mounted, /etc/init.d/networking will
 # take care of the rest.
@@ -33,6 +71,12 @@ start_wlan() {
 		insmod /mnt/lib/modules/wl12xx.ko
 		insmod /mnt/lib/modules/wl12xx_sdio.ko
 		umount /mnt
+	fi
+
+	read_mac
+	if [ "${mac}" != "" ]; then
+		ifconfig wlan0 down
+		ifconfig wlan0 hw ether ${mac}
 	fi
 
 	wpa_supplicant -iwlan0 -c /etc/wpa_supplicant.conf > /var/run/wpa_supplicant 2>&1 &
