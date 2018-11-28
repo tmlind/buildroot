@@ -96,7 +96,10 @@ fixup_safestrap_romslot() {
 	if [ "${romslot}" == "" ]; then
 		return
 	fi
-	mount -o rw /dev/mmcblk1p25 /mnt
+	if ! mount -o rw /dev/mmcblk1p25 /mnt; then
+		echo "Unmountable mmcblk1p25, ignoring SafeStrap"
+		return
+	fi
 	if [ -f /mnt/safestrap/active_slot ]; then
 		current_slot=$(cat /mnt/safestrap/active_slot)
 		if [ "${current_slot}" != "${romslot}" ]; then
