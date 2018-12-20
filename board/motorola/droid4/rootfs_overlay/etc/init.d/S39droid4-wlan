@@ -1,10 +1,10 @@
 #!/bin/sh
 
-stock_kernel="3.0.8-g448a95f"
-stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
 stock_fw="etc/firmware/ti-connectivity"
 kernel_version=$(uname -r)
-
+stock_kernel_partitions="mmcblk1p22 mmcblk1p23 mmcblk1p25 mmcblk0p1 mmcblk1p20"
+stock_wlan_modules="lib80211 cfg80211 mac80211 wl12xx wl12xx_sdio"
+stock_wlan_modules_loaded=""
 mac=""
 
 #
@@ -43,6 +43,65 @@ read_mac() {
 	umount ${tmp}
 }
 
+load_stock_wlan_modules() {
+	fw=$1
+	mods=$2
+
+	if [ ! -d ${fw} ]; then
+		return
+	fi
+
+	if ! cp ${fw}/wl1271-nvs.bin ${fw}/wl128x-fw-multirole-*.bin \
+			/lib/firmware/ti-connectivity/; then
+		return
+	fi
+
+	for module in ${stock_wlan_modules}; do
+		mod=${mods}/${module}.ko
+
+		if [ ! -f ${mod} ]; then
+			return
+		fi
+
+		if ! insmod ${mods}/${module}.ko; then
+			return
+		fi
+	done
+
+	stock_wlan_modules_loaded=1
+}
+
+# Let's assume the stock kernel firmware and modules are saved at:
+# lib/firmware/3.0.8-stock
+# lib/modules/3.0.8-stock
+find_and_load_stock_kernel_modules() {
+	tmp=$(mktemp -d)
+	fw="${tmp}/lib/firmware/3.0.8-stock"
+	mod="${tmp}/lib/modules/3.0.8-stock"
+
+	for partition in ${stock_kernel_partitions}; do
+		if mount /dev/${partition} ${tmp}; then
+			load_stock_wlan_modules ${fw} ${mod}
+			umount ${tmp}
+			if [ "${stock_wlan_modules_loaded}" != "" ]; then
+			    echo "Loaded stock WLAN fw and modules ${partition}"
+				break
+			fi
+		fi
+	done
+
+	# Fall back to using unmodified mmcblk1p20 stock partition
+	if [ "${stock_wlan_modules_loaded}" = "" ]; then
+		echo "Attempting to load WLAN modules from stock partition.."
+		if mount /dev/mmcblk1p20 ${tmp}; then
+			load_stock_wlan_modules \
+				${tmp}/etc/firmware/ti-connectivity \
+				${tmp}/lib/modules \
+			umount ${tmp}
+		fi
+	fi
+}
+
 #
 # Needs proc and sys mounted, /etc/init.d/networking will
 # take care of the rest.
@@ -56,21 +115,12 @@ start_wlan() {
 		return
 	fi
 
-	if [ "${kernel_version}" == "${stock_kernel}" ]; then
+	if echo ${kernel_version} | grep -q "3.0.8-"; then
 		mount -t tmpfs none /var/run
 		mount -t tmpfs none /lib/firmware
 		mkdir -p /lib/firmware/ti-connectivity
-		mount -o ro /dev/mmcblk1p20 /mnt
-		cp /mnt/${stock_fw}/wl1271-nvs.bin \
-			/lib/firmware/ti-connectivity/
-		cp /mnt/${stock_fw}/wl128x-fw-multirole-*.bin \
-			/lib/firmware/ti-connectivity/
-		insmod /mnt/lib/modules/lib80211.ko
-		insmod /mnt/lib/modules/cfg80211.ko
-		insmod /mnt/lib/modules/mac80211.ko
-		insmod /mnt/lib/modules/wl12xx.ko
-		insmod /mnt/lib/modules/wl12xx_sdio.ko
-		umount /mnt
+
+		find_and_load_stock_kernel_modules
 	fi
 
 	read_mac
