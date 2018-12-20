@@ -37,7 +37,7 @@ init_system() {
 }
 
 load_modules() {
-	if [ "${kernel_version}" == "${stock_kernel}" ] &&
+	if echo ${kernel_version} | grep -q "3.0.8-" &&
 		[ "${hardware}" == "${mapphone}" ] &&
 		[ "$$" == "1" ]; then
 

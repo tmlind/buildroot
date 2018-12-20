@@ -32,7 +32,7 @@ load_modules() {
 	hardware=$(grep Hardware /proc/cpuinfo | cut -d' ' -f2)
 	stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
 
-	if [ "${kernel_version}" == "${stock_kernel}" ] &&
+	if echo ${kernel_version} | grep -q "3.0.8-" &&
 		[ "${hardware}" == "${mapphone}" ]; then
 
 		# At least kexec booting at 300MHz rate can be flakey, force 1.2GHz
