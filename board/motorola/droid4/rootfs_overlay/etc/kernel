@@ -8,6 +8,7 @@
 # attempted at all. Note that you need to also disable kexec
 # in /etc/preinit by setting enable_uart=1 and start_kexecboot=0.
 # server="http://some.server.somewhere:8080/path/kernel/mainline"
+server="http://192.168.200.1:8080/mainline/"
 
 # Boot partitions to use
 boot_partitions="/dev/mmcblk0p1 /dev/mmcblk1p25"

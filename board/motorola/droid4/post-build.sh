@@ -15,7 +15,7 @@ fi
 #
 # Only enable networking if user creates /etc/wpa_supplicant.conf.
 #
-rm -f ${TARGET_DIR}/etc/wpa_supplicant.conf
+##rm -f ${TARGET_DIR}/etc/wpa_supplicant.conf
 
 #
 # Droid 4 stock kernel needs absolute paths for busybox links, probably
