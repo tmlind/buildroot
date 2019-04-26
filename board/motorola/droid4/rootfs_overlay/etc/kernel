@@ -10,7 +10,7 @@
 # server="http://some.server.somewhere:8080/path/kernel/mainline"
 
 # Boot partitions to use
-boot_partitions="/dev/mmcblk0p1 /dev/mmcblk1p25"
+boot_partitions="/dev/mmcblk0p1 /dev/mmcblk1p20 /dev/mmcblk1p25"
 
 # Boot partition path to use for the kernel
 boot_path="boot/mainline"
