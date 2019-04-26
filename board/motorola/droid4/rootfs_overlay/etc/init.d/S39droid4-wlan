@@ -2,9 +2,11 @@
 
 stock_fw="etc/firmware/ti-connectivity"
 kernel_version=$(uname -r)
-stock_kernel_partitions="mmcblk1p22 mmcblk1p23 mmcblk1p25 mmcblk0p1 mmcblk1p20"
+stock_kernel_partitions="mmcblk1p17 mmcblk1p19 mmcblk1p22 mmcblk1p23 mmcblk1p25 
+mmcblk0p1 mmcblk1p20"
 stock_wlan_modules="lib80211 cfg80211 mac80211 wl12xx wl12xx_sdio"
 stock_wlan_modules_loaded=""
+pds_partitions="mmcblk1p5 mmcblk1p7"
 mac=""
 
 #
@@ -13,10 +15,12 @@ mac=""
 read_mac() {
 	tmp=$(mktemp -d)
 
-	if ! mount -o ro /dev/mmcblk1p7 /${tmp}; then
-		echo "Could not mount pds"
-		return
-	fi
+	for partition in ${pds_partitions}; do
+		if mount -o ro /dev/${partition} /${tmp}; then
+			echo "Mounted ${partition} as pds"
+			break
+		fi
+	done
 
 	if [ ! -f ${tmp}/wifi/nvs_map.bin ]; then
 		echo "Could not find nvs_map.bin"
@@ -81,7 +85,12 @@ find_and_load_stock_kernel_modules() {
 
 	for partition in ${stock_kernel_partitions}; do
 		if mount /dev/${partition} ${tmp}; then
+			# See if we have saved "3.0.8-stock" files
 			load_stock_wlan_modules ${fw} ${mod}
+			# Also check stock kernel default location
+			load_stock_wlan_modules \
+				${tmp}/etc/firmware/ti-connectivity \
+				${tmp}/lib/modules
 			umount ${tmp}
 			if [ "${stock_wlan_modules_loaded}" != "" ]; then
 			    echo "Loaded stock WLAN fw and modules ${partition}"
@@ -89,17 +98,6 @@ find_and_load_stock_kernel_modules() {
 			fi
 		fi
 	done
-
-	# Fall back to using unmodified mmcblk1p20 stock partition
-	if [ "${stock_wlan_modules_loaded}" = "" ]; then
-		echo "Attempting to load WLAN modules from stock partition.."
-		if mount /dev/mmcblk1p20 ${tmp}; then
-			load_stock_wlan_modules \
-				${tmp}/etc/firmware/ti-connectivity \
-				${tmp}/lib/modules \
-			umount ${tmp}
-		fi
-	fi
 }
 
 #
