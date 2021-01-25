@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-KEXECBOOT_VERSION = 7409a1e0aaea61af87c4eca0149cec18a9f58ab6
+KEXECBOOT_VERSION = b3e31b473b6c4012ecab171aa7cfad521f56d8d8
 KEXECBOOT_SITE = $(call github,kexecboot,kexecboot,$(KEXECBOOT_VERSION))
 KEXECBOOT_LICENSE = GPL-2.0
 KEXECBOOT_LICENSE_FILES = License
