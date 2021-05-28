@@ -17,6 +17,12 @@
 
 stock_kernel="3.0.8-g448a95f"
 mapphone="mapphone_CDMA"
+device_model="XT894"
+lcd_mode="U:540x960p-0"
+lcd_rotate=""
+lcd_virt="768,1366"
+boot_partition="/dev/mmcblk1p14"
+initrd_offset="4505600"
 
 # See also /etc/preinit to override
 enable_uart=0
@@ -34,6 +40,35 @@ init_system() {
         kernel_version=$(uname -r)
         hardware=$(grep Hardware /proc/cpuinfo | cut -d' ' -f2)
         stock_kexec_modules="/lib/modules/${stock_kernel}/kernel/"
+
+	# Bail out for now on newer kernels
+	if [ ! -f /proc/device-tree/Chosen@0/usb_id_prod_name ]; then
+		return;
+	fi
+
+	usb_id=$(cat /proc/device-tree/Chosen@0/usb_id_prod_name)
+	if [ "${usb_id}" == "MZ609" ] ||
+			[ "${usb_id}" == "MZ617" ]; then
+		device_model="${usb_id}"
+		lcd_mode="U:1280x800p-59"
+		lcd_virt="1280,800"
+		lcd_rotate=""	# REVISIT: rotate does not seem to work?
+		boot_partition="/dev/mmcblk1p11"
+		initrd_offset="4499456"
+	fi
+
+	# Configure fb0 resolution
+	if [ "${lcd_mode}" != "" ]; then
+		echo "${lcd_mode}" > /sys/class/graphics/fb0/mode
+	fi
+
+	# Configure LCD virtual resolution
+	echo "${lcd_virt}" > /sys/class/graphics/fb0/virtual_size
+
+	# Rotate if needed, does not seem to work..
+	if [ "${lcd_rotate}" != "" ]; then
+		echo "${lcd_rotate}" > /sys/class/graphics/fb0/rotate
+	fi
 }
 
 load_modules() {
@@ -75,11 +110,11 @@ set_root_passwd() {
 # can't match the leading zeroes and we find multiple hits with
 # grep -oban $'\x1f\x8b' boot.img.. We could split the binary using awk
 # but the busybox awk currently seems to only match the first hex
-# character. Anyways, the initramfs is unlikely to change on a locked
-# device, so let's just use a fixed offset of 0x44c000 (4505600)
+# character. Anyways, the initramfs can change depending on the model,
+# on droid4 it's 0x44c000 (4505600).
 #
 unpack_initramfs() {
-	dd skip=$((4505600/512)) bs=512 if=/dev/mmcblk1p14 of=/mnt/initrd.gz
+	dd skip=$((${initrd_offset}/512)) bs=512 if=${boot_partition} of=/mnt/initrd.gz
 
 	if ! gzip -d /mnt/initrd.gz; then
 		echo "Could not uncompress initrd.gz"
@@ -158,8 +193,7 @@ if [ ! -f /tmp/pivot_root ]; then
 else
 	echo "Attempting pivot_root to stock Android distro.."
 
-	# Reset LCD virtual resolution for SafeStrap logo
-	echo 768,1366 > /sys/class/graphics/fb0/virtual_size
+	# Clear LCD for SafeStrap logo
 	dd if=/dev/zero of=/dev/fb0
 
 	prepare_pivot_root
