@@ -69,6 +69,9 @@ init_system() {
 	if [ "${lcd_rotate}" != "" ]; then
 		echo "${lcd_rotate}" > /sys/class/graphics/fb0/rotate
 	fi
+
+	# Clear LCD
+	dd if=/dev/zero of=/dev/fb0
 }
 
 load_modules() {
