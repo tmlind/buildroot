@@ -47,7 +47,10 @@ init_system() {
 	fi
 
 	usb_id=$(cat /proc/device-tree/Chosen@0/usb_id_prod_name)
-	if [ "${usb_id}" == "MZ609" ] ||
+	if [ "${usb_id}" == "XT910" ]; then
+		device_model="${usb_id}"
+		initrd_offset="4677632"
+	elif [ "${usb_id}" == "MZ609" ] ||
 			[ "${usb_id}" == "MZ617" ]; then
 		device_model="${usb_id}"
 		lcd_mode="U:1280x800p-59"
