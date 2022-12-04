@@ -22,7 +22,6 @@ lcd_mode="U:540x960p-0"
 lcd_rotate=""
 lcd_virt="768,1366"
 boot_partition="/dev/mmcblk1p14"
-initrd_offset="4505600"
 
 # See also /etc/preinit to override
 enable_uart=0
@@ -49,10 +48,8 @@ init_system() {
 	usb_id=$(cat /proc/device-tree/Chosen@0/usb_id_prod_name)
 	if [ "${usb_id}" == "XT910" ]; then
 		device_model="${usb_id}"
-		initrd_offset="4677632"
 	elif [ "${usb_id}" == "XT912" ]; then
 		device_model="${usb_id}"
-		initrd_offset="4505600"
 	elif [ "${usb_id}" == "MZ609" ] ||
 			[ "${usb_id}" == "MZ617" ]; then
 		device_model="${usb_id}"
@@ -60,7 +57,6 @@ init_system() {
 		lcd_virt="1280,800"
 		lcd_rotate=""	# REVISIT: rotate does not seem to work?
 		boot_partition="/dev/mmcblk1p11"
-		initrd_offset="4499456"
 	fi
 
 	# Configure fb0 resolution
@@ -114,15 +110,15 @@ set_root_passwd() {
 	mount -o ro,remount /
 }
 
-#
-# The initrd.gz in the boot.img starts at ..00 00 00 00 1f 8b but gnu grep
-# can't match the leading zeroes and we find multiple hits with
-# grep -oban $'\x1f\x8b' boot.img.. We could split the binary using awk
-# but the busybox awk currently seems to only match the first hex
-# character. Anyways, the initramfs can change depending on the model,
-# on droid4 it's 0x44c000 (4505600).
-#
+# The initramfs offset depends on the device and firmware
 unpack_initramfs() {
+	# Get stock firmware initrd offset. We have no hd, use od.
+	ks="$(od -t x1 ${boot_partition} | head -n1 | cut -d' ' -f10,11,12,13 | sed -e 's/ //g;')"
+	kernel_size_hex="0x${ks:6:2}${ks:4:2}${ks:2:2}${ks:0:2}"
+	align=$((2048 - 1))
+	initrd_offset=$(((0x800 + ${kernel_size_hex} + ${align}) & ~${align}))
+
+	# Extract stock initramfs
 	dd skip=$((${initrd_offset}/512)) bs=512 if=${boot_partition} of=/mnt/initrd.gz
 
 	if ! gzip -d /mnt/initrd.gz; then
