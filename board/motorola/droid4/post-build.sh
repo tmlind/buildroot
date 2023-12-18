@@ -12,6 +12,44 @@ if [ ! -d ${TARGET_DIR}/lib/firmware ]; then
 	mkdir -p ${TARGET_DIR}/lib/firmware
 fi
 
+# Prepare things for running Android battd. These get mounted by the
+# battd start-up script as the partition layout depends on the
+# device and we don't have /dev/disk/by-id available.
+if [ ! -d ${TARGET_DIR}/system ]; then
+	mkdir -p ${TARGET_DIR}/system
+fi
+
+if [ ! -d ${TARGET_DIR}/pds ]; then
+	mkdir -p ${TARGET_DIR}/pds
+fi
+
+if [ ! -d ${TARGET_DIR}/data ]; then
+	mkdir -p ${TARGET_DIR}/data
+fi
+
+if [ ! -d ${TARGET_DIR}/acct ]; then
+	mkdir -p ${TARGET_DIR}/acct
+fi
+
+# Battd changes the user to 9000 on startup
+if grep battd output/target/etc/passwd; then
+	sed -i '/.*battd.*/d' output/target/etc/passwd
+fi
+
+if grep battd output/target/etc/group; then
+	sed -i '/.*battd.*/d' output/target/etc/group
+fi
+
+echo "battd:x:9000:9000:battd,,,:/home/battd:/bin/false" >> output/target/etc/passwd
+echo "battd:x:9000:" >> output/target/etc/group
+
+# Make some room for runbattd by removing some apps
+rm -f output/target/sbin/e2freefrag
+rm -f output/target/sbin/e4crypt
+rm -f output/target/sbin/logsave
+rm -f output/target/usr/sbin/kdump
+rm -f output/target/usr/sbin/vmcore-dmesg
+
 #
 # Only enable networking if user creates /etc/wpa_supplicant.conf.
 #

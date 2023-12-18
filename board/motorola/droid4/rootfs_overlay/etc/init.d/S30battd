@@ -1,0 +1,127 @@
+#!/bin/sh
+
+get_emmc_partition_by_name() {
+	name="${1}"
+	part=$(cat /proc/cmdline | grep -o "p[0-9]*(${name})" | cut -d'(' -f1)
+	echo ${part}
+}
+
+mount_emmc_partition_by_name() {
+	name="${1}"
+	mountpoint="${2}"
+	options="${3}"
+
+	part=$(get_emmc_partition_by_name ${name})
+	if [ "${part}" == "" ]; then
+		echo "Could not get partition for ${name}"
+		return
+	fi
+
+	mount -o ${options} /dev/mmcblk1${part} ${mountpoint}
+}
+
+prepare_stock_partitions() {
+	if ! mount | grep "on /system"; then
+		mount_emmc_partition_by_name system /system ro
+	fi
+
+	if ! mount | grep "on /pds"; then
+		mount_emmc_partition_by_name pds /pds rw
+	fi
+
+	if ! mount | grep "on /acct"; then
+		mount -t tmpfs tmpfs /acct
+		mkdir /acct/uid
+	fi
+
+	# Copy battd files from userdata, otherwise kexecboot won't be able
+	# to use the data partition for kernels to load. We copy them back on
+	# when stopping battd.
+	if ! mount | grep "on /data"; then
+		mount -t tmpfs tmpfs /data
+
+		mount_emmc_partition_by_name userdata /mnt ro
+		if [ -d /mnt/battd ]; then
+			cp -r /mnt/battd /data/
+		else
+			mkdir /data/battd
+		fi
+
+		umount /mnt
+	fi
+
+	# Remove log socket if it exists, Android wants a directory..
+	if [ -S /dev/log ]; then
+		rm -f /dev/log
+	fi
+
+	if [ ! -d /dev/log ]; then
+		mkdir /dev/log
+		ln -s /dev/log_main /dev/log/main
+		ln -s /dev/log_radio /dev/log/radio
+		ln -s /dev/log_events /dev/log/events
+		ln -s /dev/log_system /dev/log/system
+	fi
+}
+
+cleanup() {
+	killall battd
+
+	# Copy back battd files to userdata
+	part=$(get_emmc_partition_by_name userdata)
+
+	if mount | grep "on /data"; then
+		# userdata may be mounted by kexecboot to boot from
+		if mount | grep /dev/mmcblk1${part}; then
+			echo "userdata already mounted by kexecboot"
+			mount -o rw,remount /dev/mmcblk1${part}
+			cp -r /data/battd/* /mnt/battd/
+			mount -o ro,remount /dev/mmcblk1${part}
+		else
+			echo "userdata not mounted by kexecboot"
+			mountpoint=$(mktemp -d)
+
+			if [ "${mountpoint}" != "" ]; then
+				mount_emmc_partition_by_name userdata ${mountpoint} rw
+
+				if [ -d ${mountpoint}/battd ]; then
+					cp /data/battd/* ${mountpoint}/battd/
+				fi
+				umount ${mountpoint}
+			fi
+		fi
+	fi
+
+	umount /data
+	umount /acct
+	umount /pds
+	umount /system
+}
+
+case "$1" in
+  start)
+	echo "Starting stock kernel battd.."
+	prepare_stock_partitions
+
+	# Start battd with runbattd wrapper
+	runbattd &
+
+	# We get a bogus battery state for a few seconds on boot
+	for i in $(seq 5); do
+		state=$(cat /sys/class/power_supply/battery/status)
+		if [ "${state}" != "Discharging" ]; then
+			break
+		fi
+		sleep 1
+	done
+
+	;;
+  stop)
+	cleanup
+	;;
+  *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+esac
+
+exit $?

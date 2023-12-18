@@ -138,6 +138,9 @@ run_legacy_kexec() {
 	/usr/sbin/kexec-droid4 "$@"
 }
 
+# Always stop battd before kexec and pivot_root
+/etc/init.d/S30battd stop
+
 check_pivot_root "$@"
 load_modules
 check_legacy_dtb "$@"

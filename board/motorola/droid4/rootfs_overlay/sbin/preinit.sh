@@ -33,7 +33,11 @@ init_system() {
 		mount -t proc none /proc
 		mount -t sysfs none /sys
 		mount -t tmpfs none /dev
+		mount -t tmpfs none /run
+		mount -t tmpfs none /tmp
 		mdev -s
+		mkdir /dev/pts
+		mount -tdevpts - /dev/pts
 	fi
 
         kernel_version=$(uname -r)
@@ -180,6 +184,10 @@ init_system
 load_modules
 set_root_passwd
 
+# Let's run battd while kexecboot is running. Note that it takes some time
+# after starting battd to show right battery voltages.
+/etc/init.d/S30battd start
+
 if [ "${start_kexecboot}" == 1 ]; then
 	/usr/bin/kexecboot
 fi
@@ -188,9 +196,15 @@ if [ "$$" != "1" ]; then
 	exit 0
 fi
 
+# Kexecboot stopped, stop battd. It gets started again as a normal start-up
+# script if pivot_root was not requested.
+/etc/init.d/S30battd stop
+
 if [ ! -f /tmp/pivot_root ]; then
 	echo "Continue normal init.."
+	umount /run
 	umount /tmp
+	umount /dev/pts
 	umount /dev
 	umount /sys
 	umount /proc
