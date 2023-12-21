@@ -1,0 +1,8 @@
+config BR2_PACKAGE_RUNBATTD
+	bool "runbattd"
+	depends on BR2_PACKAGE_KEXEC_DROID4
+	help
+	  Runbattd is an application to start the stock Android battery
+	  charger app battd on Motorola Mapphone devices
+
+	  https://github.com/runbattd/runbattd
