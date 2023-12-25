@@ -137,6 +137,9 @@ unpack_initramfs() {
 
 	rm -f /mnt/initrd
 
+	# For pivot_root
+	mkdir /mnt/old_root
+
 	return 0
 }
 
@@ -173,7 +176,7 @@ prepare_pivot_root() {
 	mount --move /sys /mnt/sys
 	mount --move /proc /mnt/proc
 
-	cd /mnt && pivot_root . data
+	cd /mnt && pivot_root . old_root
 }
 
 if [ -f /etc/preinit ]; then
@@ -211,6 +214,8 @@ if [ ! -f /tmp/pivot_root ]; then
 	exec /sbin/init
 else
 	echo "Attempting pivot_root to stock Android distro.."
+	umount /run
+	umount /tmp
 
 	# Clear LCD for SafeStrap logo
 	dd if=/dev/zero of=/dev/fb0
@@ -218,6 +223,6 @@ else
 	prepare_pivot_root
 	rmmod board_mapphone_emu_uart
 	exec /bin/busybox chroot . /bin/busybox sh -c \
-	     '/bin/busybox umount /data; exec /init $*' \
+	     '/bin/busybox umount /old_root; exec /init $*' \
 	     < /dev/console > /dev/console 2>&1
 fi
